@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Settings - Create Email Drafts{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1>Create Email Drafts</h1>
+    <p>Configure AI settings to generate personalized emails.</p>
+</div>
+
+<div class="tabs-container">
+    <div class="main-tabs">
+        <a href="{{ url_for('drafts_setup') }}" class="main-tab">1. Setup</a>
+        <a href="{{ url_for('drafts_ai_settings') }}" class="main-tab active">2. AI Settings</a>
+        <a href="{{ url_for('drafts_manual') }}" class="main-tab">3. Manual Process</a>
+        <a href="{{ url_for('drafts_automation') }}" class="main-tab">4. Automation</a>
+    </div>
+    
+    <div class="sub-tabs-container">
+        <div class="tab-content active">
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3 class="card-title">Perplexity API Settings</h3>
+                </div>
+                
+                <form id="api-settings-form">
+                    <div class="form-group">
+                        <label for="api-key">API Key:</label>
+                        <div class="flex items-center gap-2">
+                            <input type="password" id="api-key" class="flex-1">
+                            <button type="button" id="toggle-api-key" class="btn btn-secondary">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-600 mt-2">Your Perplexity API key is stored securely for this session only.</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="model">Model:</label>
+                        <select id="model">
+                            <option value="sonar">sonar</option>
+                            <option value="sonar-pro">sonar-pro</option>
+                            <option value="sonar-reasoning">sonar-reasoning</option>
+                            <option value="sonar-reasoning-pro">sonar-reasoning-pro</option>
+                            <option value="sonar-deep-research">sonar-deep-research</option>
+                            <option value="r1-1776">r1-1776</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="temperature">Temperature: <span id="temp-value">0.7</span></label>
+                        <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7">
+                        <p class="text-gray-600 mt-2">Higher values = more creative, lower values = more predictable</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <button type="button" id="toggle-advanced" class="btn btn-secondary">
+                            <i class="fas fa-sliders-h"></i> Advanced Settings
+                        </button>
+                    </div>
+                    
+                    <div id="advanced-settings" class="hidden mb-4">
+                        <div class="form-group">
+                            <label for="top-p">Top P: <span id="top-p-value">0.9</span></label>
+                            <input type="range" id="top-p" min="0.1" max="1" step="0.1" value="0.9">
+                            <p class="text-gray-600 mt-2">Controls diversity of responses</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="freq-penalty">Frequency Penalty: <span id="freq-penalty-value">0.0</span></label>
+                            <input type="range" id="freq-penalty" min="0" max="2" step="0.1" value="0.0">
+                            <p class="text-gray-600 mt-2">Reduces repetition (higher = less repetition)</p>
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="mb-4">
+                    <button id="test-api" class="btn btn-primary">
+                        <i class="fas fa-vial"></i> Test API Connection
+                    </button>
+                </div>
+                
+                <div id="api-result" class="alert alert-info hidden">
+                    <!-- Results will appear here -->
+                </div>
+                
+                <div class="flex gap-4 mb-2">
+                    <a href="https://docs.perplexity.ai/docs/getting-started" target="_blank" class="text-primary">
+                        <i class="fas fa-external-link-alt"></i> Get a Perplexity API key
+                    </a>
+                    <a href="https://docs.perplexity.ai/reference/post_chat_completions" target="_blank" class="text-primary">
+                        <i class="fas fa-external-link-alt"></i> API documentation
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3 class="card-title">Custom AI Prompt</h3>
+                </div>
+                
+                <div class="form-group">
+                    <p class="mb-2">Create your custom AI prompt below. This will guide how emails are generated.</p>
+                    <p class="mb-4 text-gray-600">The variables <code>{first_name}</code> and <code>{company}</code> will be replaced with recipient information.</p>
+                    
+                    <textarea id="custom-prompt" rows="12" class="mb-2">Write a personalized email to {first_name} who works at {company}. 
+
+Make the email:
+1. Sound natural and conversational
+2. Reference something specific about {company} that shows knowledge of their business
+3. Be 3-4 short paragraphs (not too lengthy)
+4. Include a clear call to action
+5. Use a friendly, professional tone
+
+Do not include a subject line or signature - just the body text.</textarea>
+                </div>
+            </div>
+            
+            <div class="flex justify-between">
+                <a href="{{ url_for('drafts_setup') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Setup
+                </a>
+                <button id="next-btn" class="btn btn-primary">
+                    Save & Continue to Manual Process <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle temperature range input
+    const temperatureInput = document.getElementById('temperature');
+    const tempValue = document.getElementById('temp-value');
+    
+    temperatureInput.addEventListener('input', function() {
+        tempValue.textContent = this.value;
+    });
+    
+    // Handle Top P range input
+    const topPInput = document.getElementById('top-p');
+    const topPValue = document.getElementById('top-p-value');
+    
+    topPInput.addEventListener('input', function() {
+        topPValue.textContent = this.value;
+    });
+    
+    // Handle frequency penalty range input
+    const freqPenaltyInput = document.getElementById('freq-penalty');
+    const freqPenaltyValue = document.getElementById('freq-penalty-value');
+    
+    freqPenaltyInput.addEventListener('input', function() {
+        freqPenaltyValue.textContent = this.value;
+    });
+    
+    // Toggle API key visibility
+    const apiKeyInput = document.getElementById('api-key');
+    const toggleApiKeyBtn = document.getElementById('toggle-api-key');
+    
+    toggleApiKeyBtn.addEventListener('click', function() {
+        if (apiKeyInput.type === 'password') {
+            apiKeyInput.type = 'text';
+            toggleApiKeyBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        } else {
+            apiKeyInput.type = 'password';
+            toggleApiKeyBtn.innerHTML = '<i class="fas fa-eye"></i>';
+        }
+    });
+    
+    // Toggle advanced settings
+    const toggleAdvancedBtn = document.getElementById('toggle-advanced');
+    const advancedSettings = document.getElementById('advanced-settings');
+    
+    toggleAdvancedBtn.addEventListener('click', function() {
+        advancedSettings.classList.toggle('hidden');
+        if (!advancedSettings.classList.contains('hidden')) {
+            toggleAdvancedBtn.innerHTML = '<i class="fas fa-times"></i> Hide Advanced Settings';
+        } else {
+            toggleAdvancedBtn.innerHTML = '<i class="fas fa-sliders-h"></i> Advanced Settings';
+        }
+    });
+    
+    // Handle test API button
+    const testApiBtn = document.getElementById('test-api');
+    const apiResult = document.getElementById('api-result');
+    
+    testApiBtn.addEventListener('click', function() {
+        const apiKey = apiKeyInput.value.trim();
+        
+        if (!apiKey) {
+            apiResult.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-exclamation-circle text-warning"></i>
+                    <strong>Warning:</strong> Please enter your API key
+                </div>
+            `;
+            apiResult.classList.remove('hidden', 'alert-info', 'alert-success', 'alert-danger');
+            apiResult.classList.add('alert-warning');
+            return;
+        }
+        
+        // Show loading state
+        apiResult.innerHTML = '<div class="flex items-center gap-2"><div class="spinner"></div> Testing API connection...</div>';
+        apiResult.classList.remove('hidden', 'alert-success', 'alert-danger', 'alert-warning');
+        apiResult.classList.add('alert-info');
+        
+        // Send API request
+        fetch('/api/test-perplexity', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                api_key: apiKey,
+                model: document.getElementById('model').value,
+                temperature: parseFloat(document.getElementById('temperature').value)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                apiResult.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <strong>Success!</strong> API connection successful
+                        </div>
+                        <p class="mb-2"><strong>Response:</strong> ${data.content}</p>
+                        <p class="mb-0"><strong>Model:</strong> ${data.model}</p>
+                        <p class="mb-0"><strong>Tokens:</strong> ${data.tokens.total} (${data.tokens.prompt} prompt, ${data.tokens.completion} completion)</p>
+                    </div>
+                `;
+                apiResult.classList.remove('alert-info', 'alert-danger', 'alert-warning');
+                apiResult.classList.add('alert-success');
+            } else {
+                // Show error message
+                apiResult.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-exclamation-circle text-danger"></i>
+                        <strong>Error:</strong> ${data.error}
+                    </div>
+                `;
+                apiResult.classList.remove('alert-info', 'alert-success', 'alert-warning');
+                apiResult.classList.add('alert-danger');
+            }
+        })
+        .catch(error => {
+            apiResult.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-exclamation-circle text-danger"></i>
+                    <strong>Error:</strong> ${error.message}
+                </div>
+            `;
+            apiResult.classList.remove('alert-info', 'alert-success', 'alert-warning');
+            apiResult.classList.add('alert-danger');
+        });
+    });
+    
+    // Handle next button to go to Manual Process
+    const nextBtn = document.getElementById('next-btn');
+    nextBtn.addEventListener('click', function() {
+        // Save form data to session storage
+        const aiSettings = {
+            apiKey: document.getElementById('api-key').value,
+            model: document.getElementById('model').value,
+            temperature: parseFloat(document.getElementById('temperature').value),
+            topP: parseFloat(document.getElementById('top-p').value),
+            freqPenalty: parseFloat(document.getElementById('freq-penalty').value),
+            customPrompt: document.getElementById('custom-prompt').value
+        };
+        
+        sessionStorage.setItem('aiSettings', JSON.stringify(aiSettings));
+        
+        // Redirect to next page
+        window.location.href = "{{ url_for('drafts_manual') }}";
+    });
+    
+    // Load data from session storage if exists
+    const savedAiSettings = sessionStorage.getItem('aiSettings');
+    if (savedAiSettings) {
+        const aiSettings = JSON.parse(savedAiSettings);
+        document.getElementById('api-key').value = aiSettings.apiKey || '';
+        document.getElementById('model').value = aiSettings.model || 'sonar';
+        
+        if (aiSettings.temperature) {
+            document.getElementById('temperature').value = aiSettings.temperature;
+            tempValue.textContent = aiSettings.temperature;
+        }
+        
+        if (aiSettings.topP) {
+            document.getElementById('top-p').value = aiSettings.topP;
+            topPValue.textContent = aiSettings.topP;
+        }
+        
+        if (aiSettings.freqPenalty) {
+            document.getElementById('freq-penalty').value = aiSettings.freqPenalty;
+            freqPenaltyValue.textContent = aiSettings.freqPenalty;
+        }
+        
+        if (aiSettings.customPrompt) {
+            document.getElementById('custom-prompt').value = aiSettings.customPrompt;
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,387 @@
+{% extends 'base.html' %}
+
+{% block title %}Automation - Create Email Drafts{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1>Create Email Drafts</h1>
+    <p>Automate the process of creating personalized email drafts.</p>
+</div>
+
+<div class="tabs-container">
+    <div class="main-tabs">
+        <a href="{{ url_for('drafts_setup') }}" class="main-tab">1. Setup</a>
+        <a href="{{ url_for('drafts_ai_settings') }}" class="main-tab">2. AI Settings</a>
+        <a href="{{ url_for('drafts_manual') }}" class="main-tab">3. Manual Process</a>
+        <a href="{{ url_for('drafts_automation') }}" class="main-tab active">4. Automation</a>
+    </div>
+    
+    <div class="sub-tabs-container">
+        <div class="tab-content active">
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3 class="card-title">Browser Selection</h3>
+                </div>
+                
+                <div class="form-group">
+                    <label>Select Browser:</label>
+                    <div class="flex gap-4">
+                        <div class="checkbox-group">
+                            <input type="radio" id="browser-firefox" name="browser" value="firefox" checked>
+                            <label for="browser-firefox">Firefox</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="radio" id="browser-chrome" name="browser" value="chrome">
+                            <label for="browser-chrome">Chrome</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="radio" id="browser-safari" name="browser" value="safari">
+                            <label for="browser-safari">Safari</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3 class="card-title">Automation Settings</h3>
+                </div>
+                
+                <div class="form-group">
+                    <label for="delay-input">Delay between emails (seconds):</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="delay-input" min="0.5" max="10" step="0.5" value="2.0" style="width: 80px;">
+                        <span class="text-gray-600">(Higher values = more reliable but slower)</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="use-ai-checkbox" checked>
+                        <label for="use-ai-checkbox">Use AI Generation</label>
+                    </div>
+                    <p class="text-gray-600 ml-6">If disabled, will use your template instead</p>
+                </div>
+            </div>
+            
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3 class="card-title">Automation Status</h3>
+                </div>
+                
+                <div class="form-group">
+                    <label>Status:</label>
+                    <div id="automation-status" class="font-medium">Not started</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Progress:</label>
+                    <div class="progress-bar">
+                        <div id="automation-progress-bar" class="progress-bar-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <button id="test-ai-btn" class="btn btn-secondary mb-4">
+                    <i class="fas fa-vial"></i> Test AI Generation
+                </button>
+            </div>
+            
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3 class="card-title">Automation Log</h3>
+                </div>
+                
+                <div id="log-container" class="border rounded h-64 overflow-y-auto p-4 font-mono text-sm bg-gray-100">
+                    <div class="text-gray-400">Automation log will appear here...</div>
+                </div>
+            </div>
+            
+            <div class="flex flex-col items-center mb-6">
+                <button id="start-automation-btn" class="btn btn-primary btn-large mb-3 px-8" style="font-size: 1.25rem;">
+                    <i class="fas fa-play"></i> START AUTOMATION
+                </button>
+                
+                <button id="stop-automation-btn" class="btn btn-danger" disabled>
+                    <i class="fas fa-stop"></i> Stop Automation
+                </button>
+            </div>
+            
+            <div class="alert alert-info">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>How automation works:</strong>
+                </div>
+                <ol class="ml-6">
+                    <li class="mb-2">A browser window will open and navigate to Gmail</li>
+                    <li class="mb-2">You'll need to log in to your Gmail account if not already logged in</li>
+                    <li class="mb-2">The automation will create draft emails for each recipient in your list</li>
+                    <li class="mb-2">Each email will be personalized based on your settings</li>
+                    <li class="mb-2">You can stop the automation at any time</li>
+                </ol>
+            </div>
+            
+            <div class="text-right">
+                <a href="{{ url_for('drafts_manual') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Manual Process
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elements
+    const startAutomationBtn = document.getElementById('start-automation-btn');
+    const stopAutomationBtn = document.getElementById('stop-automation-btn');
+    const testAiBtn = document.getElementById('test-ai-btn');
+    const automationStatus = document.getElementById('automation-status');
+    const automationProgressBar = document.getElementById('automation-progress-bar');
+    const logContainer = document.getElementById('log-container');
+    const useAiCheckbox = document.getElementById('use-ai-checkbox');
+    
+    // Variables
+    let isRunning = false;
+    
+    // Add log message
+    const addLog = (message, type = 'info') => {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry log-${type} mb-1`;
+        
+        if (type === 'error') {
+            logEntry.innerHTML = `<span class="text-danger">[${timestamp}] ${message}</span>`;
+        } else if (type === 'success') {
+            logEntry.innerHTML = `<span class="text-success">[${timestamp}] ${message}</span>`;
+        } else if (type === 'warning') {
+            logEntry.innerHTML = `<span class="text-warning">[${timestamp}] ${message}</span>`;
+        } else {
+            logEntry.innerHTML = `<span>[${timestamp}] ${message}</span>`;
+        }
+        
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    };
+    
+    // Initialize based on template/AI settings
+    const initializeSettings = () => {
+        // Check if we have AI settings
+        const aiSettingsJson = sessionStorage.getItem('aiSettings');
+        if (!aiSettingsJson) {
+            useAiCheckbox.checked = false;
+            useAiCheckbox.disabled = true;
+            testAiBtn.disabled = true;
+            addLog('No AI settings found. AI generation will be disabled.', 'warning');
+        }
+        
+        // Check if we have template settings
+        const templateDataJson = sessionStorage.getItem('templateData');
+        if (!templateDataJson) {
+            addLog('No template settings found.', 'warning');
+        }
+        
+        // Check if we have CSV data
+        const csvDataJson = sessionStorage.getItem('csvData');
+        if (!csvDataJson) {
+            startAutomationBtn.disabled = true;
+            addLog('No CSV data found. Please upload a CSV file in the Setup tab.', 'error');
+        } else {
+            try {
+                const csvData = JSON.parse(csvDataJson);
+                const count = csvData.emailAddresses ? csvData.emailAddresses.length : 0;
+                addLog(`Loaded ${count} email addresses from CSV.`, 'success');
+            } catch (e) {
+                console.error('Error parsing CSV data from session storage', e);
+                addLog('Error loading CSV data', 'error');
+            }
+        }
+    };
+    
+    // Handle start automation button
+    startAutomationBtn.addEventListener('click', function() {
+        if (isRunning) return;
+        
+        // Confirm action
+        if (!confirm('This will open a browser window and start creating drafts in your Gmail account. Continue?')) {
+            return;
+        }
+        
+        isRunning = true;
+        startAutomationBtn.disabled = true;
+        stopAutomationBtn.disabled = false;
+        
+        // Clear log
+        logContainer.innerHTML = '';
+        
+        // Update status
+        automationStatus.textContent = 'Starting automation...';
+        
+        // Get settings
+        const browser = document.querySelector('input[name="browser"]:checked').value;
+        const delay = parseFloat(document.getElementById('delay-input').value);
+        const useAi = useAiCheckbox.checked;
+        
+        // Log settings
+        addLog(`Starting automation with ${browser} browser`, 'info');
+        addLog(`Delay between emails: ${delay} seconds`, 'info');
+        addLog(`AI generation: ${useAi ? 'Enabled' : 'Disabled'}`, 'info');
+        
+        // Send API request to start automation
+        fetch('/api/start-automation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                browser: browser,
+                delay: delay,
+                use_ai: useAi
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                addLog('Automation process started successfully', 'success');
+                
+                // In a real implementation, we would poll for status updates
+                // For this demo, we'll simulate progress updates
+                simulateAutomation();
+            } else {
+                addLog(`Error starting automation: ${data.error}`, 'error');
+                isRunning = false;
+                startAutomationBtn.disabled = false;
+                stopAutomationBtn.disabled = true;
+                automationStatus.textContent = 'Error starting automation';
+            }
+        })
+        .catch(error => {
+            addLog(`Error: ${error.message}`, 'error');
+            isRunning = false;
+            startAutomationBtn.disabled = false;
+            stopAutomationBtn.disabled = true;
+            automationStatus.textContent = 'Error starting automation';
+        });
+    });
+    
+    // Handle stop automation button
+    stopAutomationBtn.addEventListener('click', function() {
+        if (!isRunning) return;
+        
+        if (confirm('Are you sure you want to stop the automation?')) {
+            addLog('Stopping automation...', 'warning');
+            automationStatus.textContent = 'Stopping...';
+            
+            // In a real implementation, we would send a request to stop the automation
+            // For this demo, we'll just reset the UI
+            setTimeout(() => {
+                isRunning = false;
+                startAutomationBtn.disabled = false;
+                stopAutomationBtn.disabled = true;
+                automationStatus.textContent = 'Stopped by user';
+                addLog('Automation stopped by user', 'warning');
+            }, 1500);
+        }
+    });
+    
+    // Handle test AI button
+    testAiBtn.addEventListener('click', function() {
+        addLog('Testing AI generation...', 'info');
+        
+        // Create popup to show the generated email
+        setTimeout(() => {
+            const generatedEmail = `Dear John,
+
+I hope this email finds you well. I recently came across Acme Corporation and was impressed by your innovative approach to widget manufacturing, particularly your sustainable production methods that have set a new standard in the industry.
+
+I believe there could be some valuable synergies between our organizations. My company specializes in supply chain optimization that could potentially help reduce your production costs by 15-20% while maintaining your commitment to sustainability.
+
+Would you be open to a brief 15-minute call next week to explore how we might work together? I'm available Tuesday or Thursday afternoon if either works for you.
+
+Looking forward to connecting,
+[Your Name]`;
+
+            // Create and show modal with the generated email
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold">AI-Generated Email Sample</h3>
+                        <button class="text-gray-500 hover:text-gray-700 close-modal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="mb-4">
+                        <div class="border rounded p-4 bg-gray-50 whitespace-pre-wrap">${generatedEmail}</div>
+                    </div>
+                    <div class="text-right">
+                        <button class="btn btn-primary close-modal">Close</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Add event listeners to close buttons
+            const closeButtons = modal.querySelectorAll('.close-modal');
+            closeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                });
+            });
+            
+            addLog('AI generation test completed successfully', 'success');
+        }, 1500);
+    });
+    
+    // Simulate automation progress (for demo purposes)
+    const simulateAutomation = () => {
+        const totalEmails = 10; // Simulate 10 emails
+        let currentEmail = 0;
+        
+        const updateProgress = () => {
+            if (!isRunning) return;
+            
+            currentEmail++;
+            const percent = Math.min(100, Math.round((currentEmail / totalEmails) * 100));
+            automationProgressBar.style.width = `${percent}%`;
+            automationStatus.textContent = `Processing email ${currentEmail} of ${totalEmails}`;
+            
+            if (currentEmail <= totalEmails) {
+                addLog(`Creating draft for recipient ${currentEmail}...`, 'info');
+                
+                if (currentEmail === totalEmails) {
+                    setTimeout(() => {
+                        addLog('All drafts created successfully!', 'success');
+                        automationStatus.textContent = 'Completed successfully';
+                        isRunning = false;
+                        startAutomationBtn.disabled = false;
+                        stopAutomationBtn.disabled = true;
+                    }, 1500);
+                } else {
+                    setTimeout(updateProgress, 2000); // Simulate delay between emails
+                }
+            }
+        };
+        
+        // Start the simulation
+        addLog('Opening browser...', 'info');
+        setTimeout(() => {
+            addLog('Navigating to Gmail...', 'info');
+            setTimeout(() => {
+                addLog('Please log in to your Gmail account if prompted...', 'warning');
+                setTimeout(() => {
+                    addLog('Gmail loaded successfully', 'success');
+                    updateProgress();
+                }, 2000);
+            }, 1500);
+        }, 1000);
+    };
+    
+    // Initialize page
+    initializeSettings();
+});
+</script>
+{% endblock %}

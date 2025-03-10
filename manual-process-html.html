@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+
+{% block title %}Manual Process - Create Email Drafts{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1>Create Email Drafts</h1>
+    <p>Create drafts manually with assistance.</p>
+</div>
+
+<div class="tabs-container">
+    <div class="main-tabs">
+        <a href="{{ url_for('drafts_setup') }}" class="main-tab">1. Setup</a>
+        <a href="{{ url_for('drafts_ai_settings') }}" class="main-tab">2. AI Settings</a>
+        <a href="{{ url_for('drafts_manual') }}" class="main-tab active">3. Manual Process</a>
+        <a href="{{ url_for('drafts_automation') }}" class="main-tab">4. Automation</a>
+    </div>
+    
+    <div class="sub-tabs-container">
+        <div class="tab-content active">
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3 class="card-title">Status</h3>
+                </div>
+                
+                <div class="form-group">
+                    <label>Status:</label>
+                    <div id="status" class="font-medium">No CSV loaded</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Current Email:</label>
+                    <div id="current-email" class="font-medium text-primary">-</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Progress:</label>
+                    <div id="progress" class="font-medium">0/0</div>
+                </div>
+                
+                <div class="progress-bar">
+                    <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3 class="card-title">Current Email Content</h3>
+                </div>
+                
+                <div class="flex gap-4 mb-4">
+                    <button id="copy-email-btn" class="btn btn-primary btn-icon" disabled>
+                        <i class="fas fa-copy"></i> Copy Email Address
+                    </button>
+                    
+                    <button id="next-email-btn" class="btn btn-secondary btn-icon" disabled>
+                        <i class="fas fa-arrow-right"></i> Next Email
+                    </button>
+                    
+                    <button id="open-gmail-btn" class="btn btn-secondary btn-icon">
+                        <i class="fas fa-envelope"></i> Open Gmail
+                    </button>
+                </div>
+                
+                <div id="email-preview" class="hidden">
+                    <div class="form-group">
+                        <label>Subject:</label>
+                        <div id="subject-preview" class="p-2 border rounded bg-gray-100"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Body:</label>
+                        <div id="body-preview" class="p-2 border rounded bg-gray-100 whitespace-pre-wrap" style="height: 200px; overflow-y: auto;"></div>
+                    </div>
+                    
+                    <div class="flex gap-2 mt-4">
+                        <button id="copy-subject-btn" class="btn btn-secondary btn-icon btn-sm">
+                            <i class="fas fa-copy"></i> Copy Subject
+                        </button>
+                        <button id="copy-body-btn" class="btn btn-secondary btn-icon btn-sm">
+                            <i class="fas fa-copy"></i> Copy Body
+                        </button>
+                        <button id="copy-all-btn" class="btn btn-secondary btn-icon btn-sm">
+                            <i class="fas fa-copy"></i> Copy All
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3 class="card-title">Instructions</h3>
+                </div>
+                
+                <div class="steps">
+                    <div class="step">
+                        <h4>Click "Copy Email Address"</h4>
+                        <p>This will copy the current recipient's email address to your clipboard.</p>
+                    </div>
+                    
+                    <div class="step">
+                        <h4>Click "Open Gmail" and create a new email</h4>
+                        <p>Open Gmail in your browser and click "Compose" to create a new message.</p>
+                    </div>
+                    
+                    <div class="step">
+                        <h4>Paste the email and add subject/body</h4>
+                        <p>Paste the email in the "To:" field. Add the subject and body content.</p>
+                    </div>
+                    
+                    <div class="step">
+                        <h4>Save as draft and return here</h4>
+                        <p>Close the compose window to save as draft, then return to this app.</p>
+                    </div>
+                    
+                    <div class="step">
+                        <h4>Click "Next Email" to continue</h4>
+                        <p>Proceed to the next recipient and repeat the process.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-between">
+                <a href="{{ url_for('drafts_ai_settings') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to AI Settings
+                </a>
+                <a href="{{ url_for('drafts_automation') }}" class="btn btn-primary">
+                    Continue to Automation <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elements
+    const statusEl = document.getElementById('status');
+    const currentEmailEl = document.getElementById('current-email');
+    const progressEl = document.getElementById('progress');
+    const progressBarFill = document.getElementById('progress-bar-fill');
+    const copyEmailBtn = document.getElementById('copy-email-btn');
+    const nextEmailBtn = document.getElementById('next-email-btn');
+    const openGmailBtn = document.getElementById('open-gmail-btn');
+    const emailPreview = document.getElementById('email-preview');
+    const subjectPreview = document.getElementById('subject-preview');
+    const bodyPreview = document.getElementById('body-preview');
+    const copySubjectBtn = document.getElementById('copy-subject-btn');
+    const copyBodyBtn = document.getElementById('copy-body-btn');
+    const copyAllBtn = document.getElementById('copy-all-btn');
+    
+    // Variables
+    let emailAddresses = [];
+    let firstNames = [];
+    let companies = [];
+    let currentIndex = 0;
+    let totalEmails = 0;
+    let useAI = false;
+    let useTemplate = false;
+    let templateSubject = '';
+    let templateBody = '';
+    let currentSubject = '';
+    let currentBody = '';
+    
+    // Load data from session storage
+    const loadDataFromSession = () => {
+        // Check if we have CSV data
+        const csvDataJson = sessionStorage.getItem('csvData');
+        if (csvDataJson) {
+            try {
+                const csvData = JSON.parse(csvDataJson);
+                emailAddresses = csvData.emailAddresses || [];
+                firstNames = csvData.firstNames || [];
+                companies = csvData.companies || [];
+                totalEmails = emailAddresses.length;
+                
+                if (totalEmails > 0) {
+                    statusEl.textContent = `Loaded ${totalEmails} email addresses`;
+                    progressEl.textContent = `${currentIndex + 1}/${totalEmails}`;
+                    progressBarFill.style.width = `${((currentIndex + 1) / totalEmails) * 100}%`;
+                    currentEmailEl.textContent = emailAddresses[currentIndex];
+                    copyEmailBtn.disabled = false;
+                    nextEmailBtn.disabled = false;
+                } else {
+                    statusEl.textContent = 'No email addresses loaded';
+                }
+            } catch (e) {
+                console.error('Error parsing CSV data from session storage', e);
+                statusEl.textContent = 'Error loading CSV data';
+            }
+        }
+        
+        // Load template settings
+        const templateDataJson = sessionStorage.getItem('templateData');
+        if (templateDataJson) {
+            try {
+                const templateData = JSON.parse(templateDataJson);
+                useTemplate = templateData.useTemplate;
+                useAI = templateData.usePerplexity;
+                templateSubject = templateData.subject;
+                templateBody = templateData.body;
+            } catch (e) {
+                console.error('Error parsing template data from session storage', e);
+            }
+        }
+        
+        // Generate email content for current recipient
+        if (totalEmails > 0) {
+            generateEmailContent();
+        }
+    };
+    
+    // Generate personalized email content
+    const generateEmailContent = () => {
+        if (currentIndex >= totalEmails) return;
+        
+        const firstName = firstNames[currentIndex] || '';
+        const company = companies[currentIndex] || '';
+        
+        // Replace template variables
+        let personalizedSubject = templateSubject
+            .replace(/{first_name}/g, firstName)
+            .replace(/{company}/g, company);
+            
+        let personalizedBody = templateBody
+            .replace(/{first_name}/g, firstName)
+            .replace(/{company}/g, company);
+        
+        // If AI is enabled, we would call the AI service here
+        // For now, we'll just use the template
+        if (useAI) {
+            // In a real implementation, this would make an API call to generate content
+            // For now, we'll just simulate it
+            personalizedSubject = `AI-generated subject for ${firstName} at ${company}`;
+            personalizedBody = `Dear ${firstName},
+
+This is a simulated AI-generated email for you at ${company}. In a real implementation, this would be created using the Perplexity API based on your custom prompt and recipient details.
+
+The AI would research ${company} and create highly personalized content tailored specifically to this recipient.
+
+Looking forward to connecting,
+Your Name`;
+        }
+        
+        // Update preview
+        currentSubject = personalizedSubject;
+        currentBody = personalizedBody;
+        subjectPreview.textContent = personalizedSubject;
+        bodyPreview.textContent = personalizedBody;
+        emailPreview.classList.remove('hidden');
+    };
+    
+    // Handle copy email button
+    copyEmailBtn.addEventListener('click', function() {
+        if (currentIndex >= totalEmails) return;
+        
+        const email = emailAddresses[currentIndex];
+        navigator.clipboard.writeText(email)
+            .then(() => {
+                // Give visual feedback
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                }, 2000);
+            })
+            .catch(err => {
+                alert('Failed to copy email: ' + err);
+            });
+    });
+    
+    // Handle next email button
+    nextEmailBtn.addEventListener('click', function() {
+        if (currentIndex >= totalEmails - 1) {
+            alert('No more emails to process!');
+            return;
+        }
+        
+        currentIndex++;
+        currentEmailEl.textContent = emailAddresses[currentIndex];
+        progressEl.textContent = `${currentIndex + 1}/${totalEmails}`;
+        progressBarFill.style.width = `${((currentIndex + 1) / totalEmails) * 100}%`;
+        
+        // Generate content for next recipient
+        generateEmailContent();
+        
+        // Save current index to session storage
+        sessionStorage.setItem('currentEmailIndex', currentIndex.toString());
+    });
+    
+    // Handle open Gmail button
+    openGmailBtn.addEventListener('click', function() {
+        window.open('https://mail.google.com/mail/u/0/#inbox', '_blank');
+    });
+    
+    // Handle copy buttons for email content
+    copySubjectBtn.addEventListener('click', function() {
+        navigator.clipboard.writeText(currentSubject)
+            .then(() => {
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                }, 2000);
+            })
+            .catch(err => {
+                alert('Failed to copy subject: ' + err);
+            });
+    });
+    
+    copyBodyBtn.addEventListener('click', function() {
+        navigator.clipboard.writeText(currentBody)
+            .then(() => {
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                }, 2000);
+            })
+            .catch(err => {
+                alert('Failed to copy body: ' + err);
+            });
+    });
+    
+    copyAllBtn.addEventListener('click', function() {
+        navigator.clipboard.writeText(`Subject: ${currentSubject}\n\n${currentBody}`)
+            .then(() => {
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                }, 2000);
+            })
+            .catch(err => {
+                alert('Failed to copy content: ' + err);
+            });
+    });
+    
+    // Initialize the page
+    loadDataFromSession();
+    
+    // Check if we have a saved index
+    const savedIndex = sessionStorage.getItem('currentEmailIndex');
+    if (savedIndex && !isNaN(parseInt(savedIndex))) {
+        currentIndex = parseInt(savedIndex);
+        if (currentIndex < totalEmails) {
+            currentEmailEl.textContent = emailAddresses[currentIndex];
+            progressEl.textContent = `${currentIndex + 1}/${totalEmails}`;
+            progressBarFill.style.width = `${((currentIndex + 1) / totalEmails) * 100}%`;
+            generateEmailContent();
+        }
+    }
+});
+</script>
+{% endblock %}

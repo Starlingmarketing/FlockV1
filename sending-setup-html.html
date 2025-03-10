@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Setup - Send Email Drafts{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1>Send Email Drafts</h1>
+    <p>Configure settings to automatically send your Gmail draft emails.</p>
+</div>
+
+<div class="tabs-container">
+    <div class="main-tabs">
+        <a href="{{ url_for('sending_setup') }}" class="main-tab active">1. Setup</a>
+        <a href="{{ url_for('sending_automation') }}" class="main-tab">2. Automation</a>
+    </div>
+    
+    <div class="sub-tabs-container">
+        <div class="tab-content active">
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3 class="card-title">Instructions</h3>
+                </div>
+                
+                <div class="mb-4">
+                    <p>This tool will help you automatically send your Gmail draft emails:</p>
+                    
+                    <div class="steps mt-4">
+                        <div class="step">
+                            <h4>Set Up Draft Emails</h4>
+                            <p>Make sure you already have draft emails created in your Gmail account. You can use the "Create Drafts" section of this app to generate them.</p>
+                        </div>
+                        
+                        <div class="step">
+                            <h4>Configure Sending Schedule</h4>
+                            <p>Set how frequently emails are sent and during which hours of the day to optimize deliverability.</p>
+                        </div>
+                        
+                        <div class="step">
+                            <h4>Start Automation</h4>
+                            <p>The automated process will open Gmail, navigate to your drafts, and send them one by one according to your schedule.</p>
+                        </div>
+                        
+                        <div class="step">
+                            <h4>Monitor Progress</h4>
+                            <p>Track the sending process and make adjustments as needed. You can stop the automation at any time.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center">
+                    <button id="open-gmail-btn" class="btn btn-primary btn-icon">
+                        <i class="fas fa-envelope"></i> Open Gmail in New Tab
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3 class="card-title">Browser Selection</h3>
+                </div>
+                
+                <div class="form-group">
+                    <label>Select Browser:</label>
+                    <div class="flex gap-4">
+                        <div class="checkbox-group">
+                            <input type="radio" id="browser-firefox" name="browser" value="firefox" checked>
+                            <label for="browser-firefox">Firefox</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="radio" id="browser-chrome" name="browser" value="chrome">
+                            <label for="browser-chrome">Chrome</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="radio" id="browser-safari" name="browser" value="safari">
+                            <label for="browser-safari">Safari</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3 class="card-title">Requirements</h3>
+                </div>
+                
+                <ul class="list-disc ml-6">
+                    <li class="mb-2">You need to have draft emails already created in your Gmail account</li>
+                    <li class="mb-2">You'll need to log in to your Gmail account when prompted</li>
+                    <li class="mb-2">Keep the browser window open during the automation process</li>
+                    <li class="mb-2">Make sure you have a stable internet connection</li>
+                </ul>
+                
+                <div class="alert alert-warning mt-4">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Important:</strong> 
+                    </div>
+                    <p class="mt-2">Gmail has sending limits that vary by account. For regular Gmail accounts, the limit is typically around 500 emails per day. For Google Workspace accounts, limits are higher. Exceeding these limits may result in temporary sending restrictions.</p>
+                </div>
+            </div>
+            
+            <div class="text-right">
+                <a href="{{ url_for('sending_automation') }}" class="btn btn-primary">
+                    Continue to Automation <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle open Gmail button
+    const openGmailBtn = document.getElementById('open-gmail-btn');
+    
+    openGmailBtn.addEventListener('click', function() {
+        window.open('https://mail.google.com/mail/u/0/#drafts', '_blank');
+    });
+    
+    // Save browser selection to session storage
+    const browserRadios = document.querySelectorAll('input[name="browser"]');
+    
+    browserRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            sessionStorage.setItem('sendingBrowser', this.value);
+        });
+    });
+    
+    // Load previously selected browser
+    const savedBrowser = sessionStorage.getItem('sendingBrowser');
+    if (savedBrowser) {
+        document.querySelector(`input[name="browser"][value="${savedBrowser}"]`).checked = true;
+    }
+});
+</script>
+{% endblock %}

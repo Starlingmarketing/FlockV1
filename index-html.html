@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}Gmail Automation Suite - Streamline Your Email Campaigns{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+    <h1 class="hero-title">Email Automation Made Simple</h1>
+    <p class="hero-description">Create personalized email drafts with AI and schedule them to send automatically. Save time and boost your email campaign efficiency.</p>
+    
+    <div class="hero-buttons">
+        <a href="{{ url_for('drafts_setup') }}" class="btn btn-primary btn-large">
+            <i class="fas fa-pencil"></i> Create Email Drafts
+        </a>
+        <a href="{{ url_for('sending_setup') }}" class="btn btn-secondary btn-large">
+            <i class="fas fa-paper-plane"></i> Send Email Drafts
+        </a>
+    </div>
+</section>
+
+<section class="features-section">
+    <h2 class="section-title">Powerful Email Automation Features</h2>
+    
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-robot"></i>
+            </div>
+            <h3 class="feature-title">AI-Powered Email Creation</h3>
+            <p>Generate personalized emails with Perplexity AI integration. Create unique messages tailored to each recipient based on their company and role.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <h3 class="feature-title">Scheduled Sending</h3>
+            <p>Set up schedules to automatically send your draft emails at optimal times. Control timing between emails to maximize engagement and deliverability.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3 class="feature-title">Bulk Processing</h3>
+            <p>Import contacts from CSV files and process them in bulk. Create drafts for hundreds or thousands of recipients with just a few clicks.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="feature-title">Process Monitoring</h3>
+            <p>Track your email campaign progress with detailed logs. Monitor creation and sending in real-time with visibility into each step.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-sliders-h"></i>
+            </div>
+            <h3 class="feature-title">Customizable Templates</h3>
+            <p>Create email templates with personalization variables. Include recipient names, company details, and custom fields for maximum relevance.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <h3 class="feature-title">Time Window Controls</h3>
+            <p>Set business hours for sending emails. Ensure your messages are sent only during professional hours for better response rates.</p>
+        </div>
+    </div>
+</section>
+
+<section class="card mb-8">
+    <h2 class="mb-4">How It Works</h2>
+    
+    <div class="steps">
+        <div class="step">
+            <h4>Upload Your Contact List</h4>
+            <p>Import your contacts via CSV with email addresses, names, and company information. The system will organize your recipients for processing.</p>
+        </div>
+        
+        <div class="step">
+            <h4>Create Personalized Drafts</h4>
+            <p>Use AI to generate personalized emails for each contact or create your own templates. All drafts are saved to your Gmail account automatically.</p>
+        </div>
+        
+        <div class="step">
+            <h4>Schedule Your Campaign</h4>
+            <p>Set up your preferred sending schedule with custom timing between emails. Control the pace to optimize deliverability and avoid spam filters.</p>
+        </div>
+        
+        <div class="step">
+            <h4>Monitor and Optimize</h4>
+            <p>Track your campaign progress and make adjustments as needed. View logs and status updates for each email in your campaign.</p>
+        </div>
+    </div>
+</section>
+
+<div class="card text-center">
+    <h3 class="mb-4">Ready to streamline your email campaigns?</h3>
+    <div class="flex justify-center gap-4">
+        <a href="{{ url_for('drafts_setup') }}" class="btn btn-primary">Start Creating Drafts</a>
+        <a href="{{ url_for('sending_setup') }}" class="btn btn-secondary">Start Sending Drafts</a>
+    </div>
+</div>
+{% endblock %}
